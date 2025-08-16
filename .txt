@@ -1,0 +1,171 @@
+
+local plr = game.Players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local enemiesFolder = workspace:FindFirstChild("Enemies") or Instance.new("Folder", workspace)
+enemiesFolder.Name = "Enemies"
+
+local rs = game:GetService("ReplicatedStorage")
+local remotes = rs:FindFirstChild("Remotes") or Instance.new("Folder", rs)
+remotes.Name = "Remotes"
+local attackRemote = remotes:FindFirstChild("Attack") or Instance.new("RemoteEvent", remotes)
+attackRemote.Name = "Attack"
+
+-- GUI Setup
+local sg = Instance.new("ScreenGui")
+sg.Name = "HnamHub"
+sg.ResetOnSpawn = false
+sg.Parent = plr:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 350, 0, 250)
+mainFrame.Position = UDim2.new(0, 50, 0, 100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "⚡ HnamHub ⚡"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+title.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+
+-- Tabs
+local tabFrame = Instance.new("Frame", mainFrame)
+tabFrame.Size = UDim2.new(0, 100, 1, -30)
+tabFrame.Position = UDim2.new(0, 0, 0, 30)
+tabFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+
+local contentFrame = Instance.new("Frame", mainFrame)
+contentFrame.Size = UDim2.new(1, -100, 1, -30)
+contentFrame.Position = UDim2.new(0, 100, 0, 30)
+contentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+-- Function tạo tab
+local tabs = {}
+local function createTab(name)
+    local btn = Instance.new("TextButton", tabFrame)
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Text = name
+    btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+
+    local page = Instance.new("Frame", contentFrame)
+    page.Size = UDim2.new(1,0,1,0)
+    page.Visible = false
+    page.BackgroundTransparency = 1
+
+    btn.MouseButton1Click:Connect(function()
+        for _,t in pairs(tabs) do t.page.Visible = false end
+        page.Visible = true
+    end)
+
+    table.insert(tabs, {button=btn,page=page})
+    if #tabs == 1 then page.Visible = true end
+    return page
+end
+
+-- ====================
+-- TAB 1: Auto Farm
+-- ====================
+local farmPage = createTab("AutoFarm")
+local toggle = Instance.new("TextButton", farmPage)
+toggle.Size = UDim2.new(0,120,0,40)
+toggle.Position = UDim2.new(0,20,0,20)
+toggle.Text = "AutoFarm: OFF"
+toggle.BackgroundColor3 = Color3.fromRGB(200,0,0)
+
+local autoFarm = false
+local attackRange = 50
+
+toggle.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    toggle.Text = autoFarm and "AutoFarm: ON" or "AutoFarm: OFF"
+    toggle.BackgroundColor3 = autoFarm and Color3.fromRGB(0,200,0) or Color3.fromRGB(200,0,0)
+end)
+
+local function nearestEnemy()
+    local n=nil; local d=math.huge
+    for _,e in ipairs(enemiesFolder:GetChildren()) do
+        local hr=e:FindFirstChild("HumanoidRootPart")
+        local h=e:FindFirstChild("Humanoid")
+        if hr and h and h.Health>0 then
+            local dist=(hrp.Position-hr.Position).Magnitude
+            if dist<d and dist<=attackRange then d=dist; n=e end
+        end
+    end
+    return n
+end
+
+task.spawn(function()
+    while true do
+        if autoFarm then
+            local e=nearestEnemy()
+            if e then
+                attackRemote:FireServer(e)
+            end
+        end
+        task.wait(0.2)
+    end
+end)
+
+-- ====================
+-- TAB 2: Teleport
+-- ====================
+local tpPage = createTab("Teleport")
+local btn1 = Instance.new("TextButton", tpPage)
+btn1.Size = UDim2.new(0,120,0,40)
+btn1.Position = UDim2.new(0,20,0,20)
+btn1.Text = "TP Spawn"
+btn1.MouseButton1Click:Connect(function()
+    hrp.CFrame = CFrame.new(0,5,0)
+end)
+
+local btn2 = Instance.new("TextButton", tpPage)
+btn2.Size = UDim2.new(0,120,0,40)
+btn2.Position = UDim2.new(0,20,0,80)
+btn2.Text = "TP Arena"
+btn2.MouseButton1Click:Connect(function()
+    hrp.CFrame = CFrame.new(100,5,100)
+end)
+
+-- ====================
+-- TAB 3: Player Mods
+-- ====================
+local playerPage = createTab("PlayerMods")
+
+-- Speed Hack
+local speedToggle = Instance.new("TextButton", playerPage)
+speedToggle.Size = UDim2.new(0,150,0,40)
+speedToggle.Position = UDim2.new(0,20,0,20)
+speedToggle.Text = "SpeedHack: OFF"
+speedToggle.BackgroundColor3 = Color3.fromRGB(200,0,0)
+
+local speedHack = false
+speedToggle.MouseButton1Click:Connect(function()
+    speedHack = not speedHack
+    speedToggle.Text = speedHack and "SpeedHack: ON" or "SpeedHack: OFF"
+    speedToggle.BackgroundColor3 = speedHack and Color3.fromRGB(0,200,0) or Color3.fromRGB(200,0,0)
+    char:WaitForChild("Humanoid").WalkSpeed = speedHack and 50 or 16
+end)
+
+-- Infinite Jump
+local jumpToggle = Instance.new("TextButton", playerPage)
+jumpToggle.Size = UDim2.new(0,150,0,40)
+jumpToggle.Position = UDim2.new(0,20,0,80)
+jumpToggle.Text = "InfJump: OFF"
+jumpToggle.BackgroundColor3 = Color3.fromRGB(200,0,0)
+
+local infJump = false
+jumpToggle.MouseButton1Click:Connect(function()
+    infJump = not infJump
+    jumpToggle.Text = infJump and "InfJump: ON" or "InfJump: OFF"
+    jumpToggle.BackgroundColor3 = infJump and Color3.fromRGB(0,200,0) or Color3.fromRGB(200,0,0)
+end)
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if infJump then
+        char:WaitForChild("Humanoid"):ChangeState("Jumping")
+    end
+end)
